@@ -121,12 +121,12 @@ public class UserInfo implements Serializable {
      * 
      * @return
      */
-    public String getUserId() {
+    public String getUniqueId() {
         return mUniqueId;
     }
 
-    void setUserId(String userid) {
-        mUniqueId = userid;
+    void setUniqueId(String uniqueId) {
+        mUniqueId = uniqueId;
     }
 
     /**

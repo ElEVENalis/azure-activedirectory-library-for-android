@@ -35,29 +35,35 @@ public class TokenCacheItem implements Serializable {
 
     private static final String TAG = "TokenCacheItem";
 
-    private UserInfo mUserInfo;
-
-    private String mResource;
-
     private String mAuthority;
 
+    private String[] mScope;
+    
     private String mClientId;
-
-    private String mAccessToken;
-
-    private String mRefreshtoken;
-
-    private String mRawIdToken;
-
+    
+    
+    private String mUniqueId;
+    
+    private String mDisplayableId;
+    
+    private String mTenantId;
+    
     /**
      * This time is GMT.
      */
     private Date mExpiresOn;
 
-    private boolean mIsMultiResourceRefreshToken;
+    private String mToken;
 
-    private String mTenantId;
-
+    private String mProfileInfo;
+    
+    private String mFamilyName;
+    
+    private String mGivenName;
+    
+    private String mIdentityProvider;
+    
+    private String mRawIdToken;
     /**
      * Construct default cache item.
      */
@@ -65,111 +71,26 @@ public class TokenCacheItem implements Serializable {
 
     }
 
-    TokenCacheItem(final AuthenticationRequest request, final AuthenticationResult result,
-            boolean storeMultiResourceRefreshToken) {
+    TokenCacheItem(final TokenCacheKey request, final AuthenticationResult result) {
         if (request != null) {
             mAuthority = request.getAuthority();
             mClientId = request.getClientId();
-            if (!storeMultiResourceRefreshToken) {
-                // Cache item will not store resource info for Multi Resource
-                // Refresh Token
-                mResource = request.getResource();
+            mScope = request.getScope();
+            mUniqueId = request.getUniqueId();
+            mDisplayableId = request.getDisplayableId();
+            mTenantId = request.getTenantId();
+            mExpiresOn = request.getExpiresOn();
+            mToken = request.getToken();
+            mProfileInfo = request.getProfileInfo();
+            
+            if( result.getUserInfo() != null){
+                mGivenName = result.getUserInfo().getGivenName();
+                mFamilyName = result.getUserInfo().getFamilyName();
+                mIdentityProvider = result.getUserInfo().getIdentityProvider();
             }
-        }
-
-        if (result != null) {
-            mRefreshtoken = result.getRefreshToken();
-            mExpiresOn = result.getExpiresOn();
-            mIsMultiResourceRefreshToken = storeMultiResourceRefreshToken;
-            mTenantId = result.getTenantId();
-            mUserInfo = result.getUserInfo();
+            
             mRawIdToken = result.getIdToken();
-            if (!storeMultiResourceRefreshToken) {
-                // Cache item will not store accesstoken for Multi
-                // Resource Refresh Token
-                mAccessToken = result.getAccessToken();
-            }
         }
-    }
-
-    public UserInfo getUserInfo() {
-        return mUserInfo;
-    }
-
-    public void setUserInfo(UserInfo info) {
-        this.mUserInfo = info;
-    }
-
-    public String getResource() {
-        return mResource;
-    }
-
-    public void setResource(String resource) {
-        this.mResource = resource;
-    }
-
-    public String getAuthority() {
-        return mAuthority;
-    }
-
-    public void setAuthority(String authority) {
-        this.mAuthority = authority;
-    }
-
-    public String getClientId() {
-        return mClientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.mClientId = clientId;
-    }
-
-    public String getAccessToken() {
-        return mAccessToken;
-    }
-
-    public void setAccessToken(String accessToken) {
-        this.mAccessToken = accessToken;
-    }
-
-    public String getRefreshToken() {
-        return mRefreshtoken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.mRefreshtoken = refreshToken;
-    }
-
-    public Date getExpiresOn() {
-        return mExpiresOn;
-    }
-
-    public void setExpiresOn(Date expiresOn) {
-        this.mExpiresOn = expiresOn;
-    }
-
-    public boolean getIsMultiResourceRefreshToken() {
-        return mIsMultiResourceRefreshToken;
-    }
-
-    public void setIsMultiResourceRefreshToken(boolean isMultiResourceRefreshToken) {
-        this.mIsMultiResourceRefreshToken = isMultiResourceRefreshToken;
-    }
-
-    public String getTenantId() {
-        return mTenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.mTenantId = tenantId;
-    }
-
-    public String getRawIdToken() {
-        return mRawIdToken;
-    }
-
-    public void setRawIdToken(String rawIdToken) {
-        this.mRawIdToken = rawIdToken;
     }
 
     /**
@@ -190,5 +111,117 @@ public class TokenCacheItem implements Serializable {
         }
 
         return false;
+    }
+
+    boolean match(TokenCacheKey key)
+    {
+//        return (key.Authority == this.mAuthority && key.ScopeEquals(this.Scope) && key.ClientIdEquals(this.ClientId)
+//                && key.TokenSubjectType == this.TokenSubjectType && key.UniqueId == this.UniqueId &&
+//                key.DisplayableIdEquals(this.DisplayableId));
+        return false;
+    }
+    
+    public String getAuthority() {
+        return mAuthority;
+    }
+
+    public void setAuthority(String mAuthority) {
+        this.mAuthority = mAuthority;
+    }
+
+    public String[] getScope() {
+        return mScope;
+    }
+
+    public void setScope(String[] mScope) {
+        this.mScope = mScope;
+    }
+
+    public String getClientId() {
+        return mClientId;
+    }
+
+    public void setClientId(String mClientId) {
+        this.mClientId = mClientId;
+    }
+
+    public String getUniqueId() {
+        return mUniqueId;
+    }
+
+    public void setUniqueId(String mUniqueId) {
+        this.mUniqueId = mUniqueId;
+    }
+
+    public String getDisplayableId() {
+        return mDisplayableId;
+    }
+
+    public void setDisplayableId(String mDisplayableId) {
+        this.mDisplayableId = mDisplayableId;
+    }
+
+    public String getTenantId() {
+        return mTenantId;
+    }
+
+    public void setTenantId(String mTenantId) {
+        this.mTenantId = mTenantId;
+    }
+
+    public Date getExpiresOn() {
+        return mExpiresOn;
+    }
+
+    public void setExpiresOn(Date mExpiresOn) {
+        this.mExpiresOn = mExpiresOn;
+    }
+
+    public String getToken() {
+        return mToken;
+    }
+
+    public void setToken(String mToken) {
+        this.mToken = mToken;
+    }
+
+    public String getProfileInfo() {
+        return mProfileInfo;
+    }
+
+    public void setProfileInfo(String mProfileInfo) {
+        this.mProfileInfo = mProfileInfo;
+    }
+
+    public String getFamilyName() {
+        return mFamilyName;
+    }
+
+    public void setFamilyName(String mFamilyName) {
+        this.mFamilyName = mFamilyName;
+    }
+
+    public String getGivenName() {
+        return mGivenName;
+    }
+
+    public void setGivenName(String mGivenName) {
+        this.mGivenName = mGivenName;
+    }
+
+    public String getIdentityProvider() {
+        return mIdentityProvider;
+    }
+
+    public void setIdentityProvider(String mIdentityProvider) {
+        this.mIdentityProvider = mIdentityProvider;
+    }
+
+    public String getRawIdToken() {
+        return mRawIdToken;
+    }
+
+    public void setRawIdToken(String mRawIdToken) {
+        this.mRawIdToken = mRawIdToken;
     }
 }

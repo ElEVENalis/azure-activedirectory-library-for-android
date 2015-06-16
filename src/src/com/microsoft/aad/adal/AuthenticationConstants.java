@@ -176,6 +176,8 @@ public class AuthenticationConstants {
         public final static String ADAL_ID_OS_VER = "x-client-OS";
 
         public final static String ADAL_ID_DM = "x-client-DM";
+        
+        public static final String SCOPE_DELIMETER = " ";
     }
 
     public static final class Broker {
@@ -219,6 +221,8 @@ public class AuthenticationConstants {
         public static final String ACCOUNT_LOGIN_HINT = "account.login.hint";
 
         public static final String ACCOUNT_RESOURCE = "account.resource";
+        
+        public static final String ACCOUNT_SCOPE = "account.scope";
 
         public static final String ACCOUNT_REDIRECT = "account.redirect";
 
@@ -318,6 +322,7 @@ public class AuthenticationConstants {
         public static final String BROWSER_EXT_INSTALL_PREFIX = "msauth://";
 
         public static final String CALLER_INFO_PACKAGE = "caller.info.package";
+        
     }
 
     public static final String ADAL_PACKAGE_NAME = "com.microsoft.aad.adal";

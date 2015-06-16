@@ -170,7 +170,7 @@ public class AuthenticationActivity extends Activity {
             return;
         }
 
-        if (mAuthRequest.getResource() == null || mAuthRequest.getResource().isEmpty()) {
+        if (mAuthRequest.getScope() == null || mAuthRequest.getScope().length == 0) {
             returnError(ADALError.ARGUMENT_EXCEPTION,
                     AuthenticationConstants.Broker.ACCOUNT_RESOURCE);
             return;
@@ -354,8 +354,8 @@ public class AuthenticationActivity extends Activity {
             Logger.v(TAG, "It is a broker request. Get request info from bundle extras.");
             String authority = callingIntent
                     .getStringExtra(AuthenticationConstants.Broker.ACCOUNT_AUTHORITY);
-            String resource = callingIntent
-                    .getStringExtra(AuthenticationConstants.Broker.ACCOUNT_RESOURCE);
+            String scope = callingIntent
+                    .getStringExtra(AuthenticationConstants.Broker.ACCOUNT_SCOPE);
             String redirect = callingIntent
                     .getStringExtra(AuthenticationConstants.Broker.ACCOUNT_REDIRECT);
             String loginhint = callingIntent
@@ -385,7 +385,10 @@ public class AuthenticationActivity extends Activity {
                             ADALError.CORRELATION_ID_FORMAT);
                 }
             }
-            authRequest = new AuthenticationRequest(authority, resource, clientidKey, redirect,
+            
+            // Convert serialized scope to array of strings
+            String[] scopes = StringExtensions.createArrayFromString(scope, AuthenticationConstants.AAD.SCOPE_DELIMETER);
+            authRequest = new AuthenticationRequest(authority, scopes, clientidKey, redirect,
                     loginhint, correlationIdParsed);
             authRequest.setBrokerAccountName(accountName);
             authRequest.setPrompt(promptBehavior);

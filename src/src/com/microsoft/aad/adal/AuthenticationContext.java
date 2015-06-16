@@ -35,7 +35,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.crypto.NoSuchPaddingException;
 
-import com.microsoft.aad.adal.AuthenticationRequest.UserIdentifierType;
+import com.microsoft.aad.adal.UserIdentifier.UserIdentifierType;
 
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
@@ -50,6 +50,7 @@ import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.content.LocalBroadcastManager;
+import android.text.TextUtils;
 import android.util.SparseArray;
 
 /**
@@ -151,6 +152,7 @@ public class AuthenticationContext {
      */
     public AuthenticationContext(Context appContext, String authority, boolean validateAuthority,
             ITokenCacheStore tokenCacheStore) {
+        PRNGFixes.apply();
         initialize(appContext, authority, tokenCacheStore, validateAuthority, false);
     }
 
@@ -165,6 +167,7 @@ public class AuthenticationContext {
      */
     public AuthenticationContext(Context appContext, String authority,
             ITokenCacheStore tokenCacheStore) {
+        PRNGFixes.apply();
         initialize(appContext, authority, tokenCacheStore, true, false);
     }
 
@@ -307,24 +310,23 @@ public class AuthenticationContext {
      * this refresh token from cache and start authentication.
      * 
      * @param activity required to launch authentication activity.
-     * @param resource required resource identifier.
+     * @param scope required scope passed as string array.
      * @param clientId required client identifier
      * @param redirectUri Optional. It will use package name info if not
      *            provided.
-     * @param loginHint Optional login hint
+     * @param userId Identifier of the user token is requested for. This parameter can be  {@link UserIdentifier#getAnyUser()}.
      * @param callback required
      */
-    public void acquireToken(Activity activity, String resource, String clientId,
-            String redirectUri, String loginHint,
+    public void acquireToken(Activity activity, String[] scope, String clientId,
+            String redirectUri, UserIdentifier userId,
             AuthenticationCallback<AuthenticationResult> callback) {
 
-        redirectUri = checkInputParameters(resource, clientId, redirectUri, PromptBehavior.Auto,
+        redirectUri = checkInputParameters(scope, clientId, redirectUri, PromptBehavior.Auto,
                 callback);
 
-        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, resource,
-                clientId, redirectUri, loginHint, PromptBehavior.Auto, null,
+        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, scope,
+                clientId, redirectUri, userId, PromptBehavior.Auto, null,
                 getRequestCorrelationId());
-        request.setUserIdentifierType(UserIdentifierType.LoginHint);
         acquireTokenLocal(wrapActivity(activity), false, request, callback);
     }
 
@@ -335,31 +337,27 @@ public class AuthenticationContext {
      * remove this refresh token from cache and fall back on the UI.
      * 
      * @param activity Calling activity
-     * @param resource required resource identifier.
+     * @param scope required scope identifiers.
      * @param clientId required client identifier
      * @param redirectUri Optional. It will use packagename and provided suffix
      *            for this.
-     * @param loginHint Optional. This parameter will be used to pre-populate
-     *            the username field in the authentication form. Please note
-     *            that the end user can still edit the username field and
-     *            authenticate as a different user. This parameter can be null.
+     * @param userId Identifier of the user token is requested for. This parameter can be {@link UserIdentifier#getAnyUser()}
      * @param extraQueryParameters Optional. This parameter will be appended as
      *            is to the query string in the HTTP authentication request to
      *            the authority. The parameter can be null.
      * @param callback required {@link AuthenticationCallback} object for async
      *            call.
      */
-    public void acquireToken(Activity activity, String resource, String clientId,
-            String redirectUri, String loginHint, String extraQueryParameters,
+    public void acquireToken(Activity activity, String[] scope, String clientId,
+            String redirectUri, UserIdentifier userId, String extraQueryParameters,
             AuthenticationCallback<AuthenticationResult> callback) {
 
-        redirectUri = checkInputParameters(resource, clientId, redirectUri, PromptBehavior.Auto,
+        redirectUri = checkInputParameters(scope, clientId, redirectUri, PromptBehavior.Auto,
                 callback);
 
-        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, resource,
-                clientId, redirectUri, loginHint, PromptBehavior.Auto, extraQueryParameters,
+        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, scope,
+                clientId, redirectUri, userId, PromptBehavior.Auto, extraQueryParameters,
                 getRequestCorrelationId());
-        request.setUserIdentifierType(UserIdentifierType.LoginHint);
         acquireTokenLocal(wrapActivity(activity), false, request, callback);
     }
 
@@ -372,7 +370,7 @@ public class AuthenticationContext {
      * {@link PromptBehavior} is Always, it will display prompt screen.
      * 
      * @param activity Calling activity
-     * @param resource required resource identifier.
+     * @param scope required scope identifier.
      * @param clientId required client identifier.
      * @param redirectUri Optional. It will use packagename and provided suffix
      *            for this.
@@ -381,14 +379,14 @@ public class AuthenticationContext {
      * @param callback required {@link AuthenticationCallback} object for async
      *            call.
      */
-    public void acquireToken(Activity activity, String resource, String clientId,
+    public void acquireToken(Activity activity, String[] scope, String clientId,
             String redirectUri, PromptBehavior prompt,
             AuthenticationCallback<AuthenticationResult> callback) {
 
-        redirectUri = checkInputParameters(resource, clientId, redirectUri, prompt, callback);
+        redirectUri = checkInputParameters(scope, clientId, redirectUri, prompt, callback);
 
-        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, resource,
-                clientId, redirectUri, null, prompt, null, getRequestCorrelationId());
+        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, scope,
+                clientId, redirectUri, UserIdentifier.getAnyUser(), prompt, null, getRequestCorrelationId());
 
         acquireTokenLocal(wrapActivity(activity), false, request, callback);
     }
@@ -402,7 +400,7 @@ public class AuthenticationContext {
      * Default is AUTO.
      * 
      * @param activity Calling activity
-     * @param resource required resource identifier.
+     * @param scope required scope identifier.
      * @param clientId required client identifier.
      * @param redirectUri Optional. It will use packagename and provided suffix
      *            for this.
@@ -411,14 +409,14 @@ public class AuthenticationContext {
      * @param callback required {@link AuthenticationCallback} object for async
      *            call.
      */
-    public void acquireToken(Activity activity, String resource, String clientId,
+    public void acquireToken(Activity activity, String[] scope, String clientId,
             String redirectUri, PromptBehavior prompt, String extraQueryParameters,
             AuthenticationCallback<AuthenticationResult> callback) {
 
-        redirectUri = checkInputParameters(resource, clientId, redirectUri, prompt, callback);
+        redirectUri = checkInputParameters(scope, clientId, redirectUri, prompt, callback);
 
-        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, resource,
-                clientId, redirectUri, null, prompt, extraQueryParameters,
+        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, scope,
+                clientId, redirectUri, UserIdentifier.getAnyUser(), prompt, extraQueryParameters,
                 getRequestCorrelationId());
 
         acquireTokenLocal(wrapActivity(activity), false, request, callback);
@@ -433,27 +431,25 @@ public class AuthenticationContext {
      * Default is AUTO.
      * 
      * @param activity Calling activity
-     * @param resource required resource identifier.
+     * @param scope required scope identifier.
      * @param clientId required client identifier.
      * @param redirectUri Optional. It will use packagename and provided suffix
      *            for this.
-     * @param loginHint Optional. It is used for cache and as a loginhint at
-     *            authentication.
+     * @param userId Identifier of the user token is requested for. This parameter can be {@link UserIdentifier#getAnyUser()}
      * @param prompt Optional. added as query parameter to authorization url
      * @param extraQueryParameters Optional. added to authorization url
      * @param callback required {@link AuthenticationCallback} object for async
      *            call.
      */
-    public void acquireToken(Activity activity, String resource, String clientId,
-            String redirectUri, String loginHint, PromptBehavior prompt,
+    public void acquireToken(Activity activity, String[] scope, String clientId,
+            String redirectUri, UserIdentifier userId, PromptBehavior prompt,
             String extraQueryParameters, AuthenticationCallback<AuthenticationResult> callback) {
 
-        redirectUri = checkInputParameters(resource, clientId, redirectUri, prompt, callback);
+        redirectUri = checkInputParameters(scope, clientId, redirectUri, prompt, callback);
 
-        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, resource,
-                clientId, redirectUri, loginHint, prompt, extraQueryParameters,
+        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, scope,
+                clientId, redirectUri, userId, prompt, extraQueryParameters,
                 getRequestCorrelationId());
-        request.setUserIdentifierType(UserIdentifierType.LoginHint);
         acquireTokenLocal(wrapActivity(activity), false, request, callback);
     }
 
@@ -465,27 +461,26 @@ public class AuthenticationContext {
      * token from cache and fall back on the UI. Default is AUTO.
      * 
      * @param fragment It accepts both type of fragments.
-     * @param resource required resource identifier.
+     * @param scope required resource identifier.
      * @param clientId required client identifier.
      * @param redirectUri Optional. It will use packagename and provided suffix
      *            for this.
-     * @param loginHint Optional. It is used for cache and as a loginhint at
-     *            authentication.
+     * @param userId Identifier of the user token is requested for. This
+     *            parameter can be {@link UserIdentifier#getAnyUser()}
      * @param prompt Optional. added as query parameter to authorization url
      * @param extraQueryParameters Optional. added to authorization url
      * @param callback required {@link AuthenticationCallback} object for async
      *            call.
      */
-    public void acquireToken(IWindowComponent fragment, String resource, String clientId,
-            String redirectUri, String loginHint, PromptBehavior prompt,
+    public void acquireToken(IWindowComponent fragment, String[] scope, String clientId,
+            String redirectUri, UserIdentifier userId, PromptBehavior prompt,
             String extraQueryParameters, AuthenticationCallback<AuthenticationResult> callback) {
 
-        redirectUri = checkInputParameters(resource, clientId, redirectUri, prompt, callback);
+        redirectUri = checkInputParameters(scope, clientId, redirectUri, prompt, callback);
 
-        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, resource,
-                clientId, redirectUri, loginHint, prompt, extraQueryParameters,
+        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, scope,
+                clientId, redirectUri, userId, prompt, extraQueryParameters,
                 getRequestCorrelationId());
-        request.setUserIdentifierType(UserIdentifierType.LoginHint);
         acquireTokenLocal(fragment, false, request, callback);
     }
 
@@ -498,27 +493,26 @@ public class AuthenticationContext {
      * remove this refresh token from cache and fall back on the UI. Default is
      * AUTO.
      * 
-     * @param resource required resource identifier.
+     * @param scope required scope identifier.
      * @param clientId required client identifier.
      * @param redirectUri Optional. It will use packagename and provided suffix
      *            for this.
-     * @param loginHint Optional. It is used for cache and as a loginhint at
-     *            authentication.
+     * @param userId Identifier of the user token is requested for. This
+     *            parameter can be {@link UserIdentifier#getAnyUser()}
      * @param prompt Optional. added as query parameter to authorization url
      * @param extraQueryParameters Optional. added to authorization url
      * @param callback required {@link AuthenticationCallback} object for async
      *            call.
      */
-    public void acquireToken(String resource, String clientId, String redirectUri,
-            String loginHint, PromptBehavior prompt, String extraQueryParameters,
+    public void acquireToken(String[] scope, String clientId, String redirectUri,
+            UserIdentifier userId, PromptBehavior prompt, String extraQueryParameters,
             AuthenticationCallback<AuthenticationResult> callback) {
 
-        redirectUri = checkInputParameters(resource, clientId, redirectUri, prompt, callback);
+        redirectUri = checkInputParameters(scope, clientId, redirectUri, prompt, callback);
 
-        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, resource,
-                clientId, redirectUri, loginHint, prompt, extraQueryParameters,
+        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, scope,
+                clientId, redirectUri, userId, prompt, extraQueryParameters,
                 getRequestCorrelationId());
-        request.setUserIdentifierType(UserIdentifierType.LoginHint);
         acquireTokenLocal(null, true, request, callback);
     }
 
@@ -533,14 +527,14 @@ public class AuthenticationContext {
         };
     }
 
-    private String checkInputParameters(String resource, String clientId, String redirectUri,
+    private String checkInputParameters(String[] scope, String clientId, String redirectUri,
             PromptBehavior behavior, AuthenticationCallback<AuthenticationResult> callback) {
         if (mContext == null) {
             throw new AuthenticationException(ADALError.DEVELOPER_CONTEXT_IS_NOT_PROVIDED);
         }
 
-        if (StringExtensions.IsNullOrBlank(resource)) {
-            throw new IllegalArgumentException("resource");
+        if (scope != null) {
+            throw new IllegalArgumentException("scope");
         }
 
         if (StringExtensions.IsNullOrBlank(clientId)) {
@@ -565,18 +559,18 @@ public class AuthenticationContext {
      * will use the refresh token automatically. This method will not show UI
      * for the user. If prompt is needed, the method will return an exception
      * 
-     * @param resource required resource identifier.
+     * @param scope required scope identifier.
      * @param clientId required client identifier.
-     * @param userId UserID obtained from
-     *            {@link AuthenticationResult #getUserInfo()}
+     * @param userId Identifier of the user token is requested for. This
+     *            parameter can be {@link UserIdentifier#getAnyUser()}
      * @return A {@link Future} object representing the
      *         {@link AuthenticationResult} of the call. It contains Access
      *         Token,the Access Token's expiration time, Refresh token, and
      *         {@link UserInfo}.
      */
-    public AuthenticationResult acquireTokenSilentSync(String resource, String clientId,
-            String userId) {
-        Future<AuthenticationResult> futureResult = acquireTokenSilent(resource, clientId, userId,
+    public AuthenticationResult acquireTokenSilentSync(String[] scope, String clientId,
+            UserIdentifier userId) {
+        Future<AuthenticationResult> futureResult = acquireTokenSilent(scope, clientId, userId,
                 null);
         try {
             return futureResult.get();
@@ -613,10 +607,10 @@ public class AuthenticationContext {
      * refresh token automatically. This method will not show UI for the user.
      * If prompt is needed, the method will return an exception
      * 
-     * @param resource required resource identifier.
+     * @param scope required scope identifier.
      * @param clientId required client identifier.
-     * @param userId UserId obtained from {@link UserInfo} inside
-     *            {@link AuthenticationResult}
+     * @param userId Identifier of the user token is requested for. This
+     *            parameter can be {@link UserIdentifier#getAnyUser()}
      * @param callback required {@link AuthenticationCallback} object for async
      *            call.
      * @return A {@link Future} object representing the
@@ -624,20 +618,25 @@ public class AuthenticationContext {
      *         Token,the Access Token's expiration time, Refresh token, and
      *         {@link UserInfo}.
      */
-    public Future<AuthenticationResult> acquireTokenSilent(String resource, String clientId,
-            String userId, AuthenticationCallback<AuthenticationResult> callback) {
-        if (StringExtensions.IsNullOrBlank(resource)) {
-            throw new IllegalArgumentException("resource");
+    public Future<AuthenticationResult> acquireTokenSilent(String[] scope, String clientId,
+            UserIdentifier userId, AuthenticationCallback<AuthenticationResult> callback) {
+        if (scope == null || scope.length == 0) {
+            throw new IllegalArgumentException("scope");
         }
+        
         if (StringExtensions.IsNullOrBlank(clientId)) {
             throw new IllegalArgumentException("clientId");
         }
 
-        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, resource,
+        if (userId == null) {
+            throw new IllegalArgumentException("userId");
+        }
+        
+        
+        final AuthenticationRequest request = new AuthenticationRequest(mAuthority, scope,
                 clientId, userId, getRequestCorrelationId());
         request.setSilent(true);
         request.setPrompt(PromptBehavior.Auto);
-        request.setUserIdentifierType(UserIdentifierType.UniqueId);
         return acquireTokenLocal(null, false, request, callback);
     }
 
@@ -846,23 +845,29 @@ public class AuthenticationContext {
 
     private static boolean isUserMisMatch(final AuthenticationRequest request,
             final AuthenticationResult result) {
-        if (result.getUserInfo() != null
-                && !StringExtensions.IsNullOrBlank(result.getUserInfo().getUserId())
-                && !StringExtensions.IsNullOrBlank(request.getUserId())) {
-            // Verify if IdToken is present and userid is specified
-            return !request.getUserId().equalsIgnoreCase(result.getUserInfo().getUserId());
+
+        if ((TextUtils.isEmpty(request.getDisplayableId()) && TextUtils.isEmpty(request
+                .getUniqueId()))
+                || request.getUserIdentifier().getUserIdentifierType() == UserIdentifierType.OptionalDisplayableId) {
+            return false;
+        }
+        
+        String uniqueId = (result.getUserInfo() != null && result.getUserInfo().getUniqueId() != null) ? result.getUserInfo().getUniqueId() : "NULL";
+        String displayableId = (result.getUserInfo() != null) ? result.getUserInfo().getDisplayableId(): "NULL";
+
+        UserIdentifierType requestUserType = request.getUserIdentifier().getUserIdentifierType();
+        
+        if (requestUserType == UserIdentifierType.UniqueId && !uniqueId.equalsIgnoreCase(request.getUserIdentifier().getUniqueId()))
+        {
+            return false;
         }
 
-        // it should verify loginhint as well if specified
-        if (result.getUserInfo() != null
-                && !StringExtensions.IsNullOrBlank(result.getUserInfo().getDisplayableId())
-                && !StringExtensions.IsNullOrBlank(request.getLoginHint())) {
-            // Verify if IdToken is present and userid is specified
-            return !request.getLoginHint()
-                    .equalsIgnoreCase(result.getUserInfo().getDisplayableId());
+        if (requestUserType == UserIdentifierType.RequiredDisplayableId && !displayableId.equalsIgnoreCase(request.getUserIdentifier().getDisplayableId()))
+        {
+            return false;
         }
-
-        return false;
+        
+        return true;
     }
 
     /**
@@ -1144,7 +1149,7 @@ public class AuthenticationContext {
             // refresh_session
             if (!promptUser(request.getPrompt())
                     && (!StringExtensions.IsNullOrBlank(request.getBrokerAccountName()) || !StringExtensions
-                            .IsNullOrBlank(request.getUserId()))) {
+                            .IsNullOrBlank(request.getUniqueId()))) {
                 try {
                     Logger.v(TAG, "User is specified for background token request");
                     result = mBrokerProxy.getAuthTokenInBackground(request);
@@ -1322,6 +1327,10 @@ public class AuthenticationContext {
         if (mTokenCacheStore != null) {
 
             // get token if resourceid matches to cache key.
+            if (StringExtensions.createSet(request.getScope()).contains(request.getClientId())) {
+                Logger.v(TAG, "Looking for id token...");
+            }
+            
             TokenCacheItem item = null;
             if (request.getUserIdentifierType() == UserIdentifierType.LoginHint) {
                 item = mTokenCacheStore.getItem(CacheKey.createCacheKey(request,

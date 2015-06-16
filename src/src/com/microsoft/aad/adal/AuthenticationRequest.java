@@ -34,13 +34,11 @@ class AuthenticationRequest implements Serializable {
 
     private String mRedirectUri = null;
 
-    private String mResource = null;
+    private String[] mScope = null;
 
     private String mClientId = null;
 
-    private String mLoginHint = null;
-
-    private String mUserId = null;
+    private UserIdentifier mUserIdentifier = null;
 
     private String mBrokerAccountName = null;
 
@@ -54,58 +52,47 @@ class AuthenticationRequest implements Serializable {
 
     private String mVersion = null;
 
-    private UserIdentifierType mIdentifierType;
-
-    /**
-     * Developer can use acquiretoken(with loginhint) or acquireTokenSilent(with
-     * userid), so this sets the type of the request.
-     */
-    enum UserIdentifierType {
-        UniqueId, LoginHint, NoUser
-    }
-
     public AuthenticationRequest() {
-        mIdentifierType = UserIdentifierType.NoUser;
     }
 
-    public AuthenticationRequest(String authority, String resource, String client, String redirect,
-            String loginhint, PromptBehavior prompt, String extraQueryParams, UUID correlationId) {
+    public AuthenticationRequest(String authority, String[] scope, String client, String redirect,
+            UserIdentifier userId, PromptBehavior prompt, String extraQueryParams,
+            UUID correlationId) {
         mAuthority = authority;
-        mResource = resource;
+        mScope = scope;
         mClientId = client;
         mRedirectUri = redirect;
-        mLoginHint = loginhint;
-        mBrokerAccountName = mLoginHint;
+        mUserIdentifier = userId;
+        mBrokerAccountName = userId.getDisplayableId();
         mPrompt = prompt;
         mExtraQueryParamsAuthentication = extraQueryParams;
         mCorrelationId = correlationId;
-        mIdentifierType = UserIdentifierType.NoUser;
     }
 
-    public AuthenticationRequest(String authority, String resource, String client, String redirect,
-            String loginhint, UUID requestCorrelationId) {
+    public AuthenticationRequest(String authority, String[] scope, String client, String redirect,
+            UserIdentifier userId, UUID requestCorrelationId) {
         mAuthority = authority;
-        mResource = resource;
+        mScope = scope;
         mClientId = client;
         mRedirectUri = redirect;
-        mLoginHint = loginhint;
-        mBrokerAccountName = mLoginHint;
+        mUserIdentifier = userId;
+        mBrokerAccountName = userId.getDisplayableId();
         mCorrelationId = requestCorrelationId;
     }
 
-    public AuthenticationRequest(String authority, String resource, String client, String redirect,
-            String loginhint) {
+    public AuthenticationRequest(String authority, String[] scope, String client, String redirect,
+            UserIdentifier userId) {
         mAuthority = authority;
-        mResource = resource;
+        mScope = scope;
         mClientId = client;
         mRedirectUri = redirect;
-        mLoginHint = loginhint;
-        mBrokerAccountName = mLoginHint;
+        mUserIdentifier = userId;
+        mBrokerAccountName = userId.getDisplayableId();
     }
 
-    public AuthenticationRequest(String authority, String resource, String clientid) {
+    public AuthenticationRequest(String authority, String[] scope, String clientid) {
         mAuthority = authority;
-        mResource = resource;
+        mScope = scope;
         mClientId = clientid;
     }
 
@@ -118,20 +105,21 @@ class AuthenticationRequest implements Serializable {
      * @param userid
      * @param correlationId
      */
-    public AuthenticationRequest(String authority, String resource, String clientid, String userid,
+    public AuthenticationRequest(String authority, String[] scope, String clientid, UserIdentifier userId,
             UUID correlationId) {
         mAuthority = authority;
-        mResource = resource;
+        mScope = scope;
         mClientId = clientid;
-        mUserId = userid;
+        mUserIdentifier = userId;
+        mBrokerAccountName = userId.getDisplayableId();
         mCorrelationId = correlationId;
     }
 
-    public AuthenticationRequest(String authority, String resource, String clientId,
+    public AuthenticationRequest(String authority, String[] scope, String clientId,
             UUID correlationId) {
         mAuthority = authority;
         mClientId = clientId;
-        mResource = resource;
+        mScope = scope;
         mCorrelationId = correlationId;
     }
 
@@ -147,8 +135,8 @@ class AuthenticationRequest implements Serializable {
         return mRedirectUri;
     }
 
-    public String getResource() {
-        return mResource;
+    public String[] getScope() {
+        return mScope;
     }
 
     public String getClientId() {
@@ -156,7 +144,7 @@ class AuthenticationRequest implements Serializable {
     }
 
     public String getLoginHint() {
-        return mLoginHint;
+        return mUserIdentifier != null ? mUserIdentifier.getDisplayableId() : "";
     }
 
     public UUID getCorrelationId() {
@@ -168,8 +156,8 @@ class AuthenticationRequest implements Serializable {
     }
 
     public String getLogInfo() {
-        return String.format("Request authority:%s resource:%s clientid:%s", mAuthority, mResource,
-                mClientId);
+        return String.format("Request authority:%s scope:%s clientid:%s", mAuthority,
+                StringExtensions.createStringFromArray(mScope, " "), mClientId);
     }
 
     public PromptBehavior getPrompt() {
@@ -202,16 +190,8 @@ class AuthenticationRequest implements Serializable {
         this.mBrokerAccountName = brokerAccountName;
     }
 
-    void setLoginHint(String name) {
-        mLoginHint = name;
-    }
-
-    public String getUserId() {
-        return mUserId;
-    }
-
-    public void setUserId(String userId) {
-        this.mUserId = userId;
+    public String getUniqueId() {
+        return mUserIdentifier != null ? mUserIdentifier.getUniqueId() : "";
     }
 
     public boolean isSilent() {
@@ -230,11 +210,11 @@ class AuthenticationRequest implements Serializable {
         this.mVersion = version;
     }
 
-    public UserIdentifierType getUserIdentifierType() {
-        return mIdentifierType;
+    public UserIdentifier getUserIdentifier(){
+        return mUserIdentifier;
     }
 
-    public void setUserIdentifierType(UserIdentifierType user) {
-        mIdentifierType = user;
+    public String getDisplayableId() {
+        return mUserIdentifier != null ? mUserIdentifier.getDisplayableId() : "";
     }
 }
