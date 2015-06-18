@@ -59,6 +59,7 @@ import android.webkit.WebView;
 
 import com.google.gson.Gson;
 import com.microsoft.aad.adal.AuthenticationResult.AuthenticationStatus;
+import com.microsoft.aad.adal.UserIdentifier.UserIdentifierType;
 
 /**
  * Authentication Activity to launch {@link WebView} for authentication.
@@ -388,8 +389,11 @@ public class AuthenticationActivity extends Activity {
             
             // Convert serialized scope to array of strings
             String[] scopes = StringExtensions.createArrayFromString(scope, AuthenticationConstants.AAD.SCOPE_DELIMETER);
+            UserIdentifier user = new UserIdentifier(accountName, UserIdentifierType.OptionalDisplayableId);
+            
+            // TODO send actual useridentifier in bundle
             authRequest = new AuthenticationRequest(authority, scopes, clientidKey, redirect,
-                    loginhint, correlationIdParsed);
+                    user, correlationIdParsed);
             authRequest.setBrokerAccountName(accountName);
             authRequest.setPrompt(promptBehavior);
             authRequest.setRequestId(mWaitingRequestId);
@@ -814,9 +818,6 @@ public class AuthenticationActivity extends Activity {
         private void setAccount(final TokenTaskResult result) throws InvalidKeyException,
                 InvalidKeySpecException, InvalidAlgorithmParameterException,
                 IllegalBlockSizeException, BadPaddingException, IOException {
-            // TODO Add token logging
-            // TODO update for new cache logic
-
             // Authenticator sets the account here and stores the tokens.
             try {
                 String name = mRequest.getBrokerAccountName();
@@ -835,17 +836,17 @@ public class AuthenticationActivity extends Activity {
                 // Single user in authenticator is already created.
                 // This is only registering UID for the app
                 UserInfo userinfo = result.taskResult.getUserInfo();
-                if (userinfo == null || StringExtensions.IsNullOrBlank(userinfo.getUserId())) {
+                if (userinfo == null || StringExtensions.IsNullOrBlank(userinfo.getUniqueId())) {
                     // return userid in the userinfo and use only account name
                     // for all fields
                     Logger.i(TAG, "Set userinfo from account", "");
                     result.taskResult.setUserInfo(new UserInfo(name, name, "", "", name));
-                    mRequest.setLoginHint(name);
+                    mRequest.setBrokerAccountName(name);
                 } else {
                     Logger.i(TAG, "Saving userinfo to account", "");
                     mAccountManager.setUserData(newaccount,
                             AuthenticationConstants.Broker.ACCOUNT_USERINFO_USERID,
-                            userinfo.getUserId());
+                            userinfo.getUniqueId());
                     mAccountManager.setUserData(newaccount,
                             AuthenticationConstants.Broker.ACCOUNT_USERINFO_GIVEN_NAME,
                             userinfo.getGivenName());
@@ -879,7 +880,7 @@ public class AuthenticationActivity extends Activity {
                     Logger.i(TAG, "setAccount: user key is null", "");
                 }
 
-                TokenCacheItem item = new TokenCacheItem(mRequest, result.taskResult, false);
+                TokenCacheItem item = new TokenCacheItem(mRequest, result.taskResult);
                 String json = gson.toJson(item);
                 String encrypted = cryptoHelper.encrypt(json);
 

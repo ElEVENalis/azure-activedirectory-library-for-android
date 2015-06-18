@@ -138,6 +138,10 @@ class AuthenticationRequest implements Serializable {
     public String[] getScope() {
         return mScope;
     }
+    
+    public String getScopeString(){
+        return StringExtensions.createStringFromArray(mScope, AuthenticationConstants.AAD.SCOPE_DELIMETER);
+    }
 
     public String getClientId() {
         return mClientId;
@@ -212,6 +216,10 @@ class AuthenticationRequest implements Serializable {
 
     public UserIdentifier getUserIdentifier(){
         return mUserIdentifier;
+    }
+    
+    public void setUserIdentifier(UserIdentifier user){
+        this.mUserIdentifier = user;
     }
 
     public String getDisplayableId() {

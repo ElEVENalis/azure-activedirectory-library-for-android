@@ -31,6 +31,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 
 import com.google.gson.Gson;
+import com.microsoft.aad.adal.UserIdentifier.UserIdentifierType;
 
 /**
  * Receives system broadcast message for application install events. You need to
@@ -82,7 +83,8 @@ public class ApplicationReceiver extends BroadcastReceiver {
         if (prefs != null) {
             HashMap<String, String> parameters = StringExtensions.getUrlParameters(url);
             if (parameters != null && parameters.containsKey(INSTALL_UPN_KEY)) {
-                request.setLoginHint(parameters.get(INSTALL_UPN_KEY));
+                UserIdentifier user = new UserIdentifier(parameters.get(INSTALL_UPN_KEY), UserIdentifierType.RequiredDisplayableId);
+                request.setUserIdentifier(user);
                 request.setBrokerAccountName(parameters.get(INSTALL_UPN_KEY));
             }
             Editor prefsEditor = prefs.edit();

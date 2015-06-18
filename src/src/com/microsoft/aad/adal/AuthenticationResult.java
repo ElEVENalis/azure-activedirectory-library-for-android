@@ -80,6 +80,8 @@ public class AuthenticationResult implements Serializable {
     private AuthenticationStatus mStatus = AuthenticationStatus.Failed;
 
     private boolean mInitialRequest;
+    
+    private String[] mScopes;
 
     AuthenticationResult() {
         mCode = null;
@@ -104,7 +106,7 @@ public class AuthenticationResult implements Serializable {
         mTenantId = tenantId;
         mIdToken = idToken;
     }
-
+    
     AuthenticationResult(String accessToken, String refreshToken, Date expires, boolean isBroad) {
         mCode = null;
         mAccessToken = accessToken;
@@ -135,8 +137,8 @@ public class AuthenticationResult implements Serializable {
             return result;
         }
 
-        return new AuthenticationResult(cacheItem.getAccessToken(), cacheItem.getRefreshToken(),
-                cacheItem.getExpiresOn(), cacheItem.getIsMultiResourceRefreshToken(),
+        return new AuthenticationResult(cacheItem.getToken(), "",
+                cacheItem.getExpiresOn(), false,
                 cacheItem.getUserInfo(), cacheItem.getTenantId(), cacheItem.getRawIdToken());
     }
 
@@ -308,5 +310,13 @@ public class AuthenticationResult implements Serializable {
     
     void setRefreshToken(String refreshToken){
         mRefreshToken = refreshToken;
+    }
+    
+    void setScopesInResponse(String[] scope){
+        mScopes = scope.clone();
+    }
+    
+    String[] getScopesInResponse(){
+        return mScopes;
     }
 }

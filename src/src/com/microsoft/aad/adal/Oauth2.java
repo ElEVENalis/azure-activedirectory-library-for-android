@@ -85,14 +85,15 @@ class Oauth2 {
     }
 
     public String getAuthorizationEndpointQueryParameters() throws UnsupportedEncodingException {
-        String requestUrl = String
-                .format("response_type=%s&client_id=%s&resource=%s&redirect_uri=%s&state=%s",
-                        AuthenticationConstants.OAuth2.CODE, URLEncoder.encode(
-                                mRequest.getClientId(), AuthenticationConstants.ENCODING_UTF8),
-                        URLEncoder.encode(mRequest.getResource(),
-                                AuthenticationConstants.ENCODING_UTF8), URLEncoder.encode(
-                                mRequest.getRedirectUri(), AuthenticationConstants.ENCODING_UTF8),
-                        encodeProtocolState());
+        String requestUrl = String.format(
+                "response_type=%s&client_id=%s&resource=%s&redirect_uri=%s&state=%s",
+                AuthenticationConstants.OAuth2.CODE, URLEncoder.encode(mRequest.getClientId(),
+                        AuthenticationConstants.ENCODING_UTF8), URLEncoder.encode(StringExtensions
+                        .createStringFromArray(mRequest.getScope(),
+                                AuthenticationConstants.AAD.SCOPE_DELIMETER),
+                        AuthenticationConstants.ENCODING_UTF8), URLEncoder.encode(
+                        mRequest.getRedirectUri(), AuthenticationConstants.ENCODING_UTF8),
+                encodeProtocolState());
 
         if (mRequest.getLoginHint() != null && !mRequest.getLoginHint().isEmpty()) {
             requestUrl = String.format("%s&%s=%s", requestUrl,
@@ -177,9 +178,10 @@ class Oauth2 {
                 AuthenticationConstants.OAuth2.CLIENT_ID,
                 StringExtensions.URLFormEncode(mRequest.getClientId()));
 
-        if (!StringExtensions.IsNullOrBlank(mRequest.getResource())) {
+        String scope = mRequest.getScopeString();
+        if (!StringExtensions.IsNullOrBlank(scope)) {
             message = String.format("%s&%s=%s", message, AuthenticationConstants.AAD.RESOURCE,
-                    StringExtensions.URLFormEncode(mRequest.getResource()));
+                    StringExtensions.URLFormEncode(scope));
         }
 
         return message;
@@ -389,7 +391,7 @@ class Oauth2 {
 
             if (!StringExtensions.IsNullOrBlank(authorizationUri)
                     && !StringExtensions.IsNullOrBlank(resource)
-                    && resource.equalsIgnoreCase(mRequest.getResource())) {
+                    && resource.equalsIgnoreCase(mRequest.getScopeString())) {
 
                 AuthenticationResult result = processUIResponseParams(parameters);
 
@@ -554,7 +556,7 @@ class Oauth2 {
     }
 
     public String encodeProtocolState() {
-        String state = String.format("a=%s&r=%s", mRequest.getAuthority(), mRequest.getResource());
+        String state = String.format("a=%s&r=%s", mRequest.getAuthority(), mRequest.getScopeString());
         return Base64.encodeToString(state.getBytes(), Base64.NO_PADDING | Base64.URL_SAFE);
     }
 

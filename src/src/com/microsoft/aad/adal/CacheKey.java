@@ -24,7 +24,7 @@ import java.util.Locale;
 /**
  * CacheKey will be the object for key.
  */
-public final class CacheKey implements Serializable {
+final class CacheKey implements Serializable {
 
     /**
      * Serial version id.
@@ -33,24 +33,15 @@ public final class CacheKey implements Serializable {
 
     private String mAuthority;
 
-    private String mResource;
+    private String[] mScope;
 
     private String mClientId;
 
-    private String mUserId;
+    private String mUniqueId;
 
-    private boolean mIsMultipleResourceRefreshToken;
+    private String mDisplayableId;
 
     private CacheKey() {
-        mAuthority = null;
-        mResource = null;
-        mClientId = null;
-    }
-
-    @Override
-    public String toString() {
-        return String.format(Locale.US, "%s$%s$%s$%s$%s", mAuthority, mResource, mClientId,
-                (mIsMultipleResourceRefreshToken ? "y" : "n"), mUserId);
     }
 
     /**
@@ -61,8 +52,8 @@ public final class CacheKey implements Serializable {
      * @param userId userid provided from {@link UserInfo}
      * @return CacheKey to use in saving token
      */
-    public static String createCacheKey(String authority, String resource, String clientId,
-            boolean isMultiResourceRefreshToken, String userId) {
+    public static CacheKey createCacheKey(String authority, String[] scope, String clientId,
+            String uniqueId, String displayableId) {
 
         if (authority == null) {
             throw new IllegalArgumentException("authority");
@@ -73,84 +64,51 @@ public final class CacheKey implements Serializable {
         }
 
         CacheKey key = new CacheKey();
-
-        if (!isMultiResourceRefreshToken) {
-
-            if (resource == null) {
-                throw new IllegalArgumentException("resource");
-            }
-
-            // MultiResource token items will be stored without resource
-            key.mResource = resource;
-        }
-
         key.mAuthority = authority.toLowerCase(Locale.US);
         if (key.mAuthority.endsWith("/")) {
             key.mAuthority = (String)key.mAuthority.subSequence(0, key.mAuthority.length() - 1);
         }
 
         key.mClientId = clientId.toLowerCase(Locale.US);
-        key.mIsMultipleResourceRefreshToken = isMultiResourceRefreshToken;
-
-        // optional
-        if (!StringExtensions.IsNullOrBlank(userId)) {
-            key.mUserId = userId.toLowerCase(Locale.US);
-        }
-
-        return key.toString();
+        key.mScope = scope.clone();
+        key.mUniqueId = uniqueId != null ? uniqueId : "";
+        key.mDisplayableId = displayableId != null ? displayableId : "";
+        return key;
     }
 
-    /**
-     * @param item Token item in the cache
-     * @return CacheKey to save token
-     */
-    public static String createCacheKey(TokenCacheItem item) {
-        if (item == null) {
-            throw new IllegalArgumentException("TokenCacheItem");
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
         }
 
-        String userid = null;
-
-        if (item.getUserInfo() != null) {
-            userid = item.getUserInfo().getUserId();
+        if (this.getClass() != obj.getClass()) {
+            return false;
         }
 
-        return createCacheKey(item.getAuthority(), item.getResource(), item.getClientId(),
-                item.getIsMultiResourceRefreshToken(), userid);
+        if (obj == this) {
+            return true;
+        }
+
+        final CacheKey rhs = (CacheKey)obj;
+        return this.mAuthority.equalsIgnoreCase(rhs.mAuthority) 
+                && this.mClientId.equalsIgnoreCase(rhs.mClientId)
+                && StringExtensions.createStringFromArray(this.mScope, "").equalsIgnoreCase(StringExtensions.createStringFromArray(rhs.mScope, ""))
+                && this.mUniqueId.equalsIgnoreCase(rhs.mUniqueId)
+                && this.mDisplayableId.equalsIgnoreCase(rhs.mDisplayableId);
     }
-
-    /**
-     * @param item AuthenticationRequest item
-     * @param cacheUserId UserId in the cache
-     * @return CacheKey to save token
-     */
-    public static String createCacheKey(AuthenticationRequest item, String cacheUserId) {
-        if (item == null) {
-            throw new IllegalArgumentException("AuthenticationRequest");
-        }
-
-        return createCacheKey(item.getAuthority(), item.getResource(), item.getClientId(), false,
-                cacheUserId);
+    
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = hash*17 + this.mAuthority.hashCode();
+        hash = hash*17 + this.mClientId.hashCode();
+        hash = hash*17 + StringExtensions.createStringFromArray(this.mScope, "").hashCode();
+        hash = hash*17 + this.mUniqueId.hashCode();
+        hash = hash*17 + this.mDisplayableId.hashCode();
+        return hash; 
     }
-
-    /**
-     * Store multi resource refresh tokens with different key. Key will not
-     * include resource and set flag to y.
-     * 
-     * @param item AuthenticationRequest item
-     * @param cacheUserId UserId in the cache
-     * @return CacheKey to save token
-     */
-    public static String createMultiResourceRefreshTokenKey(AuthenticationRequest item,
-            String cacheUserId) {
-        if (item == null) {
-            throw new IllegalArgumentException("AuthenticationRequest");
-        }
-
-        return createCacheKey(item.getAuthority(), item.getResource(), item.getClientId(), true,
-                cacheUserId);
-    }
-
+    
     /**
      * Gets Authority.
      * 
@@ -165,8 +123,8 @@ public final class CacheKey implements Serializable {
      * 
      * @return Resource
      */
-    public String getResource() {
-        return mResource;
+    public String[] getScope() {
+        return mScope;
     }
 
     /**
@@ -179,20 +137,24 @@ public final class CacheKey implements Serializable {
     }
 
     /**
-     * Gets UserId.
+     * Gets UniqueId.
      * 
-     * @return UserId
+     * @return UniqueId
      */
-    public String getUserId() {
-        return mUserId;
+    public String getUniqueId() {
+        return mUniqueId;
+    }
+    
+    /**
+     * Gets DisplayableId.
+     * @return
+     */
+    public String getDisplayableId() {
+        return mDisplayableId;
     }
 
-    /**
-     * Gets status for multi resource refresh token.
-     * 
-     * @return status for multi resource refresh token
-     */
-    public boolean getIsMultipleResourceRefreshToken() {
-        return mIsMultipleResourceRefreshToken;
+    public static CacheKey createCacheKey(TokenCacheItem item) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

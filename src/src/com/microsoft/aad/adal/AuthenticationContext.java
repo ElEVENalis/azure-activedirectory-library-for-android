@@ -24,6 +24,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -34,8 +35,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.crypto.NoSuchPaddingException;
-
-import com.microsoft.aad.adal.UserIdentifier.UserIdentifierType;
 
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
@@ -53,6 +52,8 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.SparseArray;
 
+import com.microsoft.aad.adal.UserIdentifier.UserIdentifierType;
+
 /**
  * ADAL context to get access token, refresh token, and lookup from cache.
  */
@@ -69,8 +70,6 @@ public class AuthenticationContext {
     private boolean mValidateAuthority;
 
     private boolean mAuthorityValidated = false;
-
-    private ITokenCacheStore mTokenCacheStore;
 
     private static final ReentrantReadWriteLock RWL = new ReentrantReadWriteLock();
 
@@ -1451,8 +1450,7 @@ public class AuthenticationContext {
         return refreshItem;
     }
 
-    private void setItemToCache(final AuthenticationRequest request, AuthenticationResult result,
-            boolean afterPrompt) throws AuthenticationException {
+    private void setItemToCache(final AuthenticationRequest request, AuthenticationResult result) throws AuthenticationException {
         if (mTokenCacheStore != null) {
 
             // User can ask for token without login hint. Next call from same
@@ -1461,33 +1459,21 @@ public class AuthenticationContext {
 
             // Calculate token hashcode
             logReturnedToken(request, result);
-
-            // acquireTokenSilent uses userid to request items
-            String userKey = request.getUserId();
-
-            if (afterPrompt) {
-                // User can change the username and enter a different one at
-                // prompt. Use idtoken if present instead of loginhint after
-                // prompt.
-                if (result.getUserInfo() != null
-                        && !StringExtensions.IsNullOrBlank(result.getUserInfo().getDisplayableId())) {
-                    Logger.v(TAG, "Updating cache for username:"
-                            + result.getUserInfo().getDisplayableId());
-                    setItemToCacheForUser(request, result, result.getUserInfo().getDisplayableId());
-                }
-            } else if (StringExtensions.IsNullOrBlank(userKey)) {
-                userKey = request.getLoginHint();
+            String[] scopeInResponse = result.getScopesInResponse();
+            Set<String> scopeSet = StringExtensions.createSet(scopeInResponse);
+            
+            if (scopeInResponse == null || scopeInResponse.length == 0 || scopeSet.contains("openid"))
+            {
+                scopeInResponse = new String[] {request.getClientId()};
             }
+            
+            String uniqueId = result.getUserInfo() != null ? result.getUserInfo().getUniqueId() : "";
+            String displayableId = result.getUserInfo() != null ? result.getUserInfo().getDisplayableId() : "";
+            
+             
+            
 
-            // It will store in the cache for empty idtokens as well
-            setItemToCacheForUser(request, result, userKey);
-
-            // Set item with userid if idtoken is present.
-            if (result.getUserInfo() != null
-                    && !StringExtensions.IsNullOrBlank(result.getUserInfo().getUserId())) {
-                Logger.v(TAG, "Updating userId:" + result.getUserInfo().getUserId());
-                setItemToCacheForUser(request, result, result.getUserInfo().getUserId());
-            }
+       
         }
     }
 

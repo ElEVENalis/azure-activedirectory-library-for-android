@@ -51,11 +51,19 @@ public class UserInfo implements Serializable {
     private transient Date mPasswordExpiresOn;
 
     public UserInfo() {
-
+        mUniqueId = "";
+        mDisplayableId = "";
+        mGivenName = "";
+        mFamilyName = "";
+        mIdentityProvider = "";
     }
 
     public UserInfo(String upn) {
         mDisplayableId = upn;
+        mUniqueId = "";
+        mGivenName = "";
+        mFamilyName = "";
+        mIdentityProvider = "";
     }
 
     public UserInfo(String userid, String givenName, String familyName, String identityProvider,
@@ -69,8 +77,8 @@ public class UserInfo implements Serializable {
 
     public UserInfo(IdToken token) {
 
-        mUniqueId = null;
-        mDisplayableId = null;
+        mUniqueId = "";
+        mDisplayableId = "";
 
         if (!StringExtensions.IsNullOrBlank(token.mObjectId)) {
             mUniqueId = token.mObjectId;

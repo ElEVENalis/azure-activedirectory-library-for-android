@@ -41,10 +41,7 @@ public class TokenCacheItem implements Serializable {
     
     private String mClientId;
     
-    
-    private String mUniqueId;
-    
-    private String mDisplayableId;
+    private UserInfo mUserInfo = new UserInfo();
     
     private String mTenantId;
     
@@ -57,35 +54,33 @@ public class TokenCacheItem implements Serializable {
 
     private String mProfileInfo;
     
-    private String mFamilyName;
-    
-    private String mGivenName;
-    
     private String mIdentityProvider;
     
     private String mRawIdToken;
+    
+    private String mRefreshToken;
+    
+    private boolean mIsMultiResourceRefresh;
+    
     /**
      * Construct default cache item.
      */
     public TokenCacheItem() {
-
+        mUserInfo = new UserInfo();
     }
 
-    TokenCacheItem(final TokenCacheKey request, final AuthenticationResult result) {
+    TokenCacheItem(final CacheKey request, final AuthenticationResult result) {
         if (request != null) {
             mAuthority = request.getAuthority();
             mClientId = request.getClientId();
-            mScope = request.getScope();
-            mUniqueId = request.getUniqueId();
-            mDisplayableId = request.getDisplayableId();
-            mTenantId = request.getTenantId();
-            mExpiresOn = request.getExpiresOn();
-            mToken = request.getToken();
-            mProfileInfo = request.getProfileInfo();
-            
+            mScope = result.getScopesInResponse();
+            mTenantId = result.getTenantId();
+            mExpiresOn = result.getExpiresOn();
+            mToken = result.getAccessToken();
+            mProfileInfo = result.getIdToken();
+            mRefreshToken = result.getRefreshToken();
             if( result.getUserInfo() != null){
-                mGivenName = result.getUserInfo().getGivenName();
-                mFamilyName = result.getUserInfo().getFamilyName();
+                mUserInfo = result.getUserInfo();
                 mIdentityProvider = result.getUserInfo().getIdentityProvider();
             }
             
@@ -113,12 +108,13 @@ public class TokenCacheItem implements Serializable {
         return false;
     }
 
-    boolean match(TokenCacheKey key)
+    boolean match(CacheKey key)
     {
-//        return (key.Authority == this.mAuthority && key.ScopeEquals(this.Scope) && key.ClientIdEquals(this.ClientId)
-//                && key.TokenSubjectType == this.TokenSubjectType && key.UniqueId == this.UniqueId &&
-//                key.DisplayableIdEquals(this.DisplayableId));
-        return false;
+        // Use all the key fields to check match.
+         return (key.getAuthority().equalsIgnoreCase(this.mAuthority) && StringExtensions.createStringFromArray(key.getScope(), "").equalsIgnoreCase(StringExtensions.createStringFromArray(this.mScope, ""))
+                 && key.getClientId().equalsIgnoreCase(this.mClientId)
+                 && key.getUniqueId().equalsIgnoreCase(this.getUserInfo().getUniqueId())
+                 && key.getDisplayableId().equalsIgnoreCase(this.getUserInfo().getDisplayableId()));
     }
     
     public String getAuthority() {
@@ -143,22 +139,6 @@ public class TokenCacheItem implements Serializable {
 
     public void setClientId(String mClientId) {
         this.mClientId = mClientId;
-    }
-
-    public String getUniqueId() {
-        return mUniqueId;
-    }
-
-    public void setUniqueId(String mUniqueId) {
-        this.mUniqueId = mUniqueId;
-    }
-
-    public String getDisplayableId() {
-        return mDisplayableId;
-    }
-
-    public void setDisplayableId(String mDisplayableId) {
-        this.mDisplayableId = mDisplayableId;
     }
 
     public String getTenantId() {
@@ -193,22 +173,6 @@ public class TokenCacheItem implements Serializable {
         this.mProfileInfo = mProfileInfo;
     }
 
-    public String getFamilyName() {
-        return mFamilyName;
-    }
-
-    public void setFamilyName(String mFamilyName) {
-        this.mFamilyName = mFamilyName;
-    }
-
-    public String getGivenName() {
-        return mGivenName;
-    }
-
-    public void setGivenName(String mGivenName) {
-        this.mGivenName = mGivenName;
-    }
-
     public String getIdentityProvider() {
         return mIdentityProvider;
     }
@@ -223,5 +187,33 @@ public class TokenCacheItem implements Serializable {
 
     public void setRawIdToken(String mRawIdToken) {
         this.mRawIdToken = mRawIdToken;
+    }
+
+    String getRefreshToken() {
+        return mRefreshToken;
+    }
+
+    void setRefreshToken(String refreshToken) {
+        this.mRefreshToken = refreshToken;
+    }
+
+    public UserInfo getUserInfo() {
+        if(mUserInfo == null){
+            mUserInfo = new UserInfo();
+        }
+        
+        return mUserInfo;
+    }
+
+    public void setUserInfo(UserInfo mUserInfo) {
+        this.mUserInfo = mUserInfo;
+    }
+
+    public boolean isMultiResourceRefresh() {
+        return mIsMultiResourceRefresh;
+    }
+
+    public void setIsMultiResourceRefresh(boolean mIsMultiResourceRefresh) {
+        this.mIsMultiResourceRefresh = mIsMultiResourceRefresh;
     }
 }

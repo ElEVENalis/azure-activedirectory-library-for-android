@@ -31,7 +31,6 @@ import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -178,8 +177,8 @@ class BrokerProxy implements IBrokerProxy {
     private UserInfo findUserInfo(String userid, UserInfo[] userList) {
         if (userList != null) {
             for (UserInfo user : userList) {
-                if (user != null && !TextUtils.isEmpty(user.getUserId())
-                        && user.getUserId().equalsIgnoreCase(userid)) {
+                if (user != null && !TextUtils.isEmpty(user.getUniqueId())
+                        && user.getUniqueId().equalsIgnoreCase(userid)) {
                     return user;
                 }
             }
@@ -207,7 +206,7 @@ class BrokerProxy implements IBrokerProxy {
         } else {
             try {
                 UserInfo[] users = getBrokerUsers();
-                UserInfo matchingUser = findUserInfo(request.getUserId(), users);
+                UserInfo matchingUser = findUserInfo(request.getUniqueId(), users);
                 if (matchingUser != null) {
                     targetAccount = findAccount(matchingUser.getDisplayableId(), accountList);
                 }
@@ -415,8 +414,8 @@ class BrokerProxy implements IBrokerProxy {
         brokerOptions.putInt(AuthenticationConstants.Browser.REQUEST_ID, request.getRequestId());
         brokerOptions.putString(AuthenticationConstants.Broker.ACCOUNT_AUTHORITY,
                 request.getAuthority());
-        brokerOptions.putString(AuthenticationConstants.Broker.ACCOUNT_RESOURCE,
-                request.getResource());
+        brokerOptions.putString(AuthenticationConstants.Broker.ACCOUNT_SCOPE,
+                request.getScopeString());
         brokerOptions.putString(AuthenticationConstants.Broker.ACCOUNT_REDIRECT,
                 request.getRedirectUri());
         brokerOptions.putString(AuthenticationConstants.Broker.ACCOUNT_CLIENTID_KEY,
